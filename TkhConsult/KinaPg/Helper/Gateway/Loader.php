@@ -15,9 +15,12 @@ use Magento\Sales\Model\Order\Invoice;
 use Magento\Sales\Model\Order\Payment\Transaction;
 use Magento\Sales\Model\Service\InvoiceService;
 use Magento\Store\Model\ScopeInterface;
+use Magento\Framework\View\Asset\Repository;
+use Magento\Framework\App\RequestInterface;
 use TkhConsult\KinaBankGateway\KinaBank\Response;
 use TkhConsult\KinaBankGateway\KinaBankGateway;
 use TkhConsult\KinaPg\Model\Ui\ConfigProvider;
+use Magento\Framework\Exception\LocalizedException;
 
 class Loader {
     /**
@@ -36,6 +39,14 @@ class Loader {
      * @var OrderSender
      */
     protected $orderSender;
+    /**
+     * @var Repository
+     */
+    protected $assetRepo;
+    /**
+     * @var RequestInterface
+     */
+    protected $request;
 
     protected $filesystem;
     protected $backRefUrl;
@@ -44,6 +55,9 @@ class Loader {
     const TRANSACTION_TYPE_PAYMENT = 'payment';
     const TRANSACTION_TYPE_AUTHORIZATION = 'authorize';
 
+    const TEST_URL = 'https://devegateway.kinabank.com.pg';
+    const PROD_URL = 'https://ipg.kinabank.com.pg';
+
     /**
      * @var ScopeConfigInterface
      */
@@ -51,7 +65,7 @@ class Loader {
 
     const XML_PATH_PREFIX = 'payment/kinabank_gateway/';
 
-    public function __construct($backRefUrl) {
+    public function __construct($backRefUrl, $request = null) {
         $objectManager = ObjectManager::getInstance();
         $this->scopeConfig = $objectManager->create(ScopeConfigInterface::class);
         $this->filesystem = $objectManager->create(Filesystem::class);
@@ -60,6 +74,8 @@ class Loader {
         $this->invoiceService = $objectManager->create(InvoiceService::class);
         $this->invoiceSender = $objectManager->create(InvoiceSender::class);
         $this->transaction = $objectManager->create(DBTransaction::class);
+        $this->assetRepo = $objectManager->create(Repository::class);
+        $this->request = $request;
         if(false) (new Adapter())->initialize('','');
     }
 
@@ -87,12 +103,21 @@ class Loader {
         $timezone = $this->getTimezone();
         $lang = 'en';
         $keyPath = ($testmode) ? $this->getTestKeyPath() : $this->getProdKeyPath();
-        $gatewayUrl = ($testmode ? 'https://devegateway.kinabank.com.pg/cgi-bin/cgi_link' : 'https://prodegateway.kinabank.com.pg/cgi-bin/cgi_link');
+        $gatewayUrl = $this->getHost($testmode) . '/cgi-bin/cgi_link';
         $sslVerify  = !$testmode;
         $defaultCurrency =  $this->getConfigData('currency');
         $backRefUrl = $this->backRefUrl;
 
         return compact('debug', 'testmode', 'merchantId', 'merchantTerminal', 'merchantUrl', 'merchantName', 'merchantAddress', 'timezone', 'lang', 'keyPath', 'gatewayUrl', 'sslVerify', 'defaultCurrency', 'backRefUrl');
+    }
+
+    public function getHost($testmode) {
+        $host = self::PROD_URL;
+        if($testmode) {
+            $host = self::TEST_URL;
+        }
+
+        return $host;
     }
 
     /**
@@ -155,7 +180,9 @@ class Loader {
             ->setMerchantAddress($data['merchantAddress'])
             ->setTimezone($data['timezone'])
             ->setDebug($data['debug'])
-            ->setDefaultLanguage($data['lang']);
+            ->setDefaultLanguage($data['lang'])
+            ->setAcceptUrl($this->getAcceptLogoUrl())
+            ->setSubmitButtonLabel('Click here to pay');
 
         $kinaBankGateway->setSecurityOptions($data['keyPath']);
 
@@ -222,5 +249,28 @@ class Loader {
         $this->invoiceSender->send($invoice);
         $order->addStatusToHistory(false, __('Invoice #%1 created', $invoice->getIncrementId()), true);
         $order->save();
+    }
+
+    public function getAcceptLogoUrl()
+    {
+        return $this->getViewFileUrl('TkhConsult_KinaPg::accept.png');
+    }
+
+    /**
+     * Retrieve url of a view file
+     *
+     * @param string $fileId
+     * @param array $params
+     * @return string
+     */
+    public function getViewFileUrl($fileId, array $params = [])
+    {
+        try {
+            if(is_null($this->request)) return '';
+            $params = array_merge(['_secure' => $this->request->isSecure()], $params);
+            return $this->assetRepo->getUrlWithParams($fileId, $params);
+        } catch (LocalizedException $e) {
+            return '';
+        }
     }
 }

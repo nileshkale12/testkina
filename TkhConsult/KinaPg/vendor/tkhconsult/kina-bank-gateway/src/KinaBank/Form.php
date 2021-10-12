@@ -33,6 +33,11 @@ class Form
      * @var array
      */
     private $_formElements = [];
+    
+    private $showAccept = false;
+    private $acceptUrl = '';
+    private $submitButtonLabel = 'Checkout - Credit/Debit Cards';
+    private $pageType = 'embedded';
 
     /**
      * Construct
@@ -95,7 +100,7 @@ class Form
             $label = '&nbsp;<label>'.$elementName.'</label>';
         }
 
-        return '<div><input type="'.$type.'" name="'.$elementName.'" value="'.$elementValue.'"'.$options.'/>'.$label . '</div>';
+        return '<div><input type="'.$type.'" name="'.$elementName.'" data-kinabank value="'.$elementValue.'"'.$options.'/>'.$label . '</div>';
     }
 
     /**
@@ -138,6 +143,50 @@ class Form
         return $this;
     }
 
+
+    /**
+     * Accept URL setter
+     *
+     * @param boolean $debug
+     *
+     * @return $this
+     */
+    public function setAcceptUrl($acceptUrl)
+    {
+        $this->acceptUrl = $acceptUrl;
+        $this->showAccept = !empty($acceptUrl);
+
+        return $this;
+    }
+
+    /**
+     * Submit button label setter
+     *
+     * @param boolean $debug
+     *
+     * @return $this
+     */
+    public function setSubmitButtonLabel($label)
+    {
+        $this->submitButtonLabel = $label;
+
+        return $this;
+    }
+
+    /**
+     * Page type setter
+     *
+     * @param boolean $pageType
+     *
+     * @return $this
+     */
+    public function setPageType($pageType)
+    {
+        $this->pageType = $pageType;
+
+        return $this;
+    }
+    
     /**
      * Renders form HTML
      *
@@ -152,6 +201,10 @@ class Form
         $formName = $this->_formName;
         $formMethod = $this->_formMethod;
         $formAction = $this->_formAction;
+        $submitLabel = $this->submitButtonLabel;
+        $showAccept = $this->showAccept;
+        $acceptUrl = $this->acceptUrl;
+        $isHosted = $this->pageType == 'hosted';
         $scheme = parse_url($formAction, PHP_URL_SCHEME);
         $host = $scheme . '://' . parse_url($formAction, PHP_URL_HOST);
         $elements = implode("\n", $this->_formElements);
