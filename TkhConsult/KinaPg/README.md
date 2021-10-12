@@ -38,3 +38,20 @@ Stores > Configuration > Sales > Payment Methods > Kinabank Payment Gateway Inte
 More details are available in the Kinabank Payment Gateway:
 
 https://docs.google.com/document/d/16zNhlXUQaLKryyJkcZ_ipCcf3q9I-k2uIWBGssbgE7M/edit?usp=sharing
+
+
+
+### [Release](../../releases) & Changelog
+
+#### [1.0.2.2](../../releases/tag/v1.0.2.2)
+- fix field not disabled issue
+
+#### [1.0.2.1](../../releases/tag/v1.0.2.1)
+- rename function name
+
+#### [1.0.2](../../releases/tag/v1.0.2)
+- update js for submit button
+
+
+#### [1.0.1](../../releases/tag/v1.0.1)
+- update prod url

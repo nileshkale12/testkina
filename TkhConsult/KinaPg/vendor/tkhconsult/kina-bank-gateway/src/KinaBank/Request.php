@@ -36,18 +36,24 @@ abstract class Request implements RequestInterface
      * @var array
      */
     protected $_requestFields = [];
+    protected $_acceptUrl = '';
+    protected $_submitButtonLabel = '';
+    protected $_pageType = 'embedded';
 
     /**
      * Construct
      *
      * @param array  $requestParams
      * @param string $gatewayUrl
+     * @param string $pageType
+     * @param string $acceptUrl
+     * @param string $submitButtonLabel
      * @param bool   $debugMode
      * @param bool   $sslVerify
      *
      * @throws Exception
      */
-    public function __construct(array $requestParams, $gatewayUrl, $debugMode = false, $sslVerify = true)
+    public function __construct(array $requestParams, $gatewayUrl, $pageType, $acceptUrl = '', $submitButtonLabel = '', $debugMode = false, $sslVerify = true)
     {
         #Push the request field values
         foreach ($requestParams as $name => $value) {
@@ -59,6 +65,9 @@ abstract class Request implements RequestInterface
 
         #Set gateway URL
         $this->_gatewayUrl = $gatewayUrl;
+        $this->_pageType = $pageType;
+        $this->_acceptUrl = $acceptUrl;
+        $this->_submitButtonLabel = $submitButtonLabel;
         #Set debug mode
         $this->_debugMode = $debugMode;
         #Set SSL verify mode
@@ -142,6 +151,8 @@ abstract class Request implements RequestInterface
         foreach ($data as $Id => $filed) {
             $mac .= strlen($filed).$filed;
         }
-        return hash_hmac('sha256', $mac, pack('H*', file_get_contents(static::$secretKeyPath)));
+        $key = file_get_contents(static::$secretKeyPath);
+        $key = preg_replace('/[^A-Za-z0-9]+/', '', $key);
+        return hash_hmac('sha256', $mac, pack('H*', $key));
     }
 }
